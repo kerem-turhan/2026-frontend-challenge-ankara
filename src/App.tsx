@@ -1,54 +1,66 @@
+import { useCallback, useEffect, useState } from 'react';
+
 import { TopBar } from './components/TopBar';
 import { PeoplePane } from './components/PeoplePane';
 import { Dossier } from './components/Dossier';
 import { useInvestigation } from './hooks/useInvestigation';
-import type { InvestigationStatus } from './data/types';
 
-const STATUS_LABEL: Record<InvestigationStatus, string> = {
-  loading: 'Loading',
-  partial: 'Partial',
-  ready: 'Ready',
-  error: 'Error',
-};
+const HASH_PERSON_KEY = 'person';
 
-const STATUS_DOT: Record<InvestigationStatus, string> = {
-  loading: 'bg-slate-400',
-  partial: 'bg-amber-500',
-  ready: 'bg-emerald-500',
-  error: 'bg-rose-500',
-};
+function readHashPersonKey(): string | null {
+  if (typeof window === 'undefined') return null;
+  const hash = window.location.hash.startsWith('#')
+    ? window.location.hash.slice(1)
+    : window.location.hash;
+  if (!hash) return null;
+  try {
+    const params = new URLSearchParams(hash);
+    const raw = params.get(HASH_PERSON_KEY);
+    if (!raw) return null;
+    const value = raw.trim();
+    return value.length > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeHashPersonKey(key: string | null): void {
+  if (typeof window === 'undefined') return;
+  const next = key ? `#${HASH_PERSON_KEY}=${encodeURIComponent(key)}` : ' ';
+  window.history.replaceState(null, '', next);
+}
 
 export default function App() {
-  const { status, records, peopleSorted, sourceStatuses } = useInvestigation();
-  const successSources = sourceStatuses.filter((s) => s.state === 'success').length;
+  const { status, peopleByKey, peopleSorted } = useInvestigation();
+  const [selectedPersonKey, setSelectedPersonKey] = useState<string | null>(() =>
+    readHashPersonKey(),
+  );
+
+  useEffect(() => {
+    writeHashPersonKey(selectedPersonKey);
+  }, [selectedPersonKey]);
+
+  const selectedPerson = selectedPersonKey ? peopleByKey.get(selectedPersonKey) : undefined;
+
+  const handleSelectPerson = useCallback((key: string) => {
+    setSelectedPersonKey(key);
+  }, []);
 
   return (
     <div className="flex h-screen flex-col bg-slate-50 text-slate-900">
       <TopBar />
-      {/* Temporary Step-2 validation strip. Removed in Step 3. */}
-      <div
-        role="status"
-        className="flex h-8 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-6 text-[11px] text-slate-500"
-      >
-        <span className="inline-flex items-center gap-1.5 font-medium uppercase tracking-wider">
-          <span
-            className={`inline-block h-1.5 w-1.5 rounded-full ${STATUS_DOT[status]}`}
-            aria-hidden="true"
-          />
-          {STATUS_LABEL[status]}
-        </span>
-        <span className="text-slate-300">·</span>
-        <span className="font-mono">Records: {records.length}</span>
-        <span className="text-slate-300">·</span>
-        <span className="font-mono">People: {peopleSorted.length}</span>
-        <span className="text-slate-300">·</span>
-        <span className="font-mono">
-          Sources: {successSources}/{sourceStatuses.length}
-        </span>
-      </div>
       <div className="flex flex-1 overflow-hidden">
-        <PeoplePane />
-        <Dossier />
+        <PeoplePane
+          people={peopleSorted}
+          selectedKey={selectedPersonKey}
+          onSelect={handleSelectPerson}
+          status={status}
+        />
+        <Dossier
+          person={selectedPerson}
+          peopleByKey={peopleByKey}
+          onSelectPerson={handleSelectPerson}
+        />
       </div>
     </div>
   );

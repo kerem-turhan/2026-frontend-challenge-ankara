@@ -1,5 +1,6 @@
 import { Fragment, useState, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { isValid, parseISO } from 'date-fns';
 
 import type { BaseRecord, SourceType } from '../data/types';
 import { cn } from '../utils/cn';
@@ -36,7 +37,7 @@ function buildSentence(record: BaseRecord): ReactNode {
   const subject = personName ? (
     <Strong>{personName}</Strong>
   ) : (
-    <span className="italic">Someone</span>
+    <span className="italic text-slate-400">Someone</span>
   );
   const other = otherPersonName ? <Strong>{otherPersonName}</Strong> : null;
   const place = location ? <Strong>{location}</Strong> : null;
@@ -74,6 +75,8 @@ export function TimelineItem({ record }: TimelineItemProps) {
   const [expanded, setExpanded] = useState(false);
   const relative = formatRelative(record.occurredAt);
   const absolute = formatAbsoluteLong(record.occurredAt);
+  const parsed = record.occurredAt ? parseISO(record.occurredAt) : null;
+  const dateTimeAttr = parsed && isValid(parsed) ? parsed.toISOString() : undefined;
   const hasText = typeof record.text === 'string' && record.text.length > 0;
   const hasExtra = hasText || shouldShowLocationExtra(record);
 
@@ -93,7 +96,7 @@ export function TimelineItem({ record }: TimelineItemProps) {
         className={cn(
           'group flex w-full flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4 text-left transition-colors',
           hasExtra
-            ? 'hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300'
+            ? 'hover:border-slate-300 hover:bg-slate-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2'
             : 'cursor-default',
         )}
       >
@@ -102,15 +105,19 @@ export function TimelineItem({ record }: TimelineItemProps) {
             <Badge tone={record.sourceType}>{SOURCE_LABEL[record.sourceType]}</Badge>
             {record.mentionsPodo ? <Badge tone="amber">mentions Podo</Badge> : null}
           </div>
-          <span className="shrink-0 text-[11px] text-slate-500" title={absolute ?? undefined}>
-            {relative ?? 'unknown time'}
-          </span>
+          <time
+            {...(dateTimeAttr ? { dateTime: dateTimeAttr } : {})}
+            title={absolute ?? undefined}
+            className="shrink-0 text-[11px] text-slate-500"
+          >
+            {relative ?? <span className="italic text-slate-400">Unknown time</span>}
+          </time>
         </div>
         <p className="text-sm leading-relaxed text-slate-700">{buildSentence(record)}</p>
         {hasText ? (
           <p
             className={cn(
-              'text-[13px] leading-relaxed text-slate-500',
+              'whitespace-pre-wrap break-words text-[13px] leading-relaxed text-slate-500',
               !expanded && 'line-clamp-2',
             )}
           >

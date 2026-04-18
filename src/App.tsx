@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Dossier } from './components/Dossier';
 import { PartialErrorBanner } from './components/PartialErrorBanner';
@@ -9,6 +9,7 @@ import { ErrorState } from './components/ui/ErrorState';
 import { buildPeopleIndex } from './data/buildPeopleIndex';
 import { applyFilters, useFilters } from './hooks/useFilters';
 import { useInvestigation } from './hooks/useInvestigation';
+import { useKeyboardNav } from './hooks/useKeyboardNav';
 
 const HASH_PERSON_KEY = 'person';
 
@@ -43,6 +44,7 @@ export default function App() {
     readHashPersonKey(),
   );
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     writeHashPersonKey(selectedPersonKey);
@@ -79,6 +81,35 @@ export default function App() {
     }
   }, [refetchAll]);
 
+  const handleMoveSelection = useCallback(
+    (direction: 1 | -1) => {
+      const list = filteredIndex.peopleSorted;
+      if (list.length === 0) return;
+      const currentIndex = selectedPersonKey
+        ? list.findIndex((p) => p.key === selectedPersonKey)
+        : -1;
+      let nextIndex: number;
+      if (currentIndex === -1) {
+        nextIndex = direction === 1 ? 0 : list.length - 1;
+      } else {
+        nextIndex = (currentIndex + direction + list.length) % list.length;
+      }
+      const next = list[nextIndex];
+      if (next) setSelectedPersonKey(next.key);
+    },
+    [filteredIndex.peopleSorted, selectedPersonKey],
+  );
+
+  const handleClearSearch = useCallback(() => {
+    filters.setQuery('');
+  }, [filters]);
+
+  useKeyboardNav({
+    searchInputRef,
+    onClearSearch: handleClearSearch,
+    onMoveSelection: handleMoveSelection,
+  });
+
   const isHardError = status === 'error';
 
   return (
@@ -91,6 +122,7 @@ export default function App() {
         onRefresh={handleRefresh}
         refreshing={refreshing}
         refreshDisabled={status === 'loading'}
+        searchInputRef={searchInputRef}
       />
       {status === 'partial' ? (
         <PartialErrorBanner
@@ -113,7 +145,7 @@ export default function App() {
           />
         </main>
       ) : (
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
           <PeoplePane
             people={filteredIndex.peopleSorted}
             totalPeople={peopleSorted.length}

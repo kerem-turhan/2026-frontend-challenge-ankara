@@ -60,7 +60,7 @@ export function SourceFilters({
             aria-pressed={active}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-1',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1',
               active ? ACTIVE_CHIP[source] : INACTIVE_CHIP,
             )}
           >
@@ -82,7 +82,7 @@ export function SourceFilters({
         disabled={allActive}
         className={cn(
           'ml-auto inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-1',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1',
           allActive
             ? 'cursor-default text-slate-300'
             : 'text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700',

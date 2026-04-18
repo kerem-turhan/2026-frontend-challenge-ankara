@@ -1,3 +1,5 @@
+import type { Ref } from 'react';
+
 import type { Person, SourceType } from '../data/types';
 import { cn } from '../utils/cn';
 import { formatRelative } from '../utils/date';
@@ -7,6 +9,13 @@ export interface PersonListItemProps {
   person: Person;
   selected: boolean;
   onClick: () => void;
+  buttonRef?: Ref<HTMLButtonElement>;
+}
+
+function suspicionBarClass(score: number): string {
+  if (score >= 67) return 'bg-rose-500';
+  if (score >= 34) return 'bg-amber-500';
+  return 'bg-emerald-500';
 }
 
 const SOURCE_ORDER: readonly SourceType[] = ['sighting', 'message', 'checkin', 'note', 'tip'];
@@ -27,25 +36,30 @@ const SOURCE_LABEL: Record<SourceType, string> = {
   tip: 'tips',
 };
 
-export function PersonListItem({ person, selected, onClick }: PersonListItemProps) {
+export function PersonListItem({ person, selected, onClick, buttonRef }: PersonListItemProps) {
   const relative = formatRelative(person.latestSeenAt);
   const location = person.lastLocation;
   const score = Math.max(0, Math.min(100, person.suspicionScore));
+  const hasName = person.displayName.trim().length > 0;
+  const labelName = hasName ? person.displayName : 'Unknown';
+  const barClass = suspicionBarClass(score);
 
   return (
     <button
+      ref={buttonRef}
       type="button"
       onClick={onClick}
       aria-pressed={selected}
+      aria-label={`${labelName}, suspicion score ${score} of 100`}
       className={cn(
         'relative flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors',
         'hover:bg-slate-50/70',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-300',
+        'focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500',
         selected && 'bg-slate-50',
       )}
     >
       {selected ? (
-        <span aria-hidden="true" className="absolute inset-y-0 left-0 w-0.5 bg-indigo-600" />
+        <span aria-hidden="true" className="absolute inset-y-0 left-0 w-[3px] bg-indigo-600" />
       ) : null}
       <span
         aria-hidden="true"
@@ -57,10 +71,11 @@ export function PersonListItem({ person, selected, onClick }: PersonListItemProp
         <p
           className={cn(
             'truncate text-sm font-medium text-slate-900',
-            selected && 'text-indigo-800',
+            !hasName && 'italic text-slate-400',
+            hasName && selected && 'text-indigo-800',
           )}
         >
-          {person.displayName}
+          {labelName}
         </p>
         <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-slate-500">
           {relative ? <span className="truncate">{relative}</span> : null}
@@ -77,7 +92,7 @@ export function PersonListItem({ person, selected, onClick }: PersonListItemProp
             className="relative h-1.5 w-10 overflow-hidden rounded-full bg-slate-100"
           >
             <span
-              className="absolute left-0 top-0 h-full rounded-full bg-indigo-500"
+              className={cn('absolute left-0 top-0 h-full rounded-full transition-colors', barClass)}
               style={{ width: `${score}%` }}
             />
           </span>

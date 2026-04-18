@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef } from 'react';
 import { FilterX, Users } from 'lucide-react';
 
 import type { InvestigationStatus, Person, SourceType } from '../data/types';
@@ -37,9 +38,36 @@ export function PeoplePane({
   const count = people.length;
   const isInitialLoading = status === 'loading' && totalPeople === 0;
   const isEmptyReady = count === 0 && status !== 'loading';
+  const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+
+  const registerItemRef = useCallback((key: string, el: HTMLButtonElement | null) => {
+    if (el) {
+      itemRefs.current.set(key, el);
+    } else {
+      itemRefs.current.delete(key);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!selectedKey) return;
+    const el = itemRefs.current.get(selectedKey);
+    if (!el) return;
+    el.scrollIntoView({ block: 'nearest' });
+    if (
+      typeof document !== 'undefined' &&
+      document.activeElement instanceof HTMLElement &&
+      document.activeElement.tagName !== 'INPUT' &&
+      document.activeElement.tagName !== 'TEXTAREA'
+    ) {
+      el.focus({ preventScroll: true });
+    }
+  }, [selectedKey]);
 
   return (
-    <aside className="flex h-full w-[360px] shrink-0 flex-col border-r border-slate-200 bg-white">
+    <aside
+      aria-label="Suspects"
+      className="flex w-full shrink-0 flex-col border-b border-slate-200 bg-white lg:h-full lg:w-[360px] lg:border-b-0 lg:border-r"
+    >
       <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4">
         <div className="flex items-baseline justify-between gap-2">
           <div>
@@ -63,7 +91,7 @@ export function PeoplePane({
           onSelectAll={onSelectAllSources}
         />
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="scrollbar-slim max-h-[40vh] overflow-y-auto lg:max-h-none lg:flex-1">
         {isInitialLoading ? (
           <ul className="divide-y divide-slate-100" aria-busy="true">
             {Array.from({ length: SKELETON_ROWS }, (_, i) => (
@@ -97,13 +125,14 @@ export function PeoplePane({
             />
           )
         ) : (
-          <ul>
+          <ul role="list">
             {people.map((person) => (
-              <li key={person.key}>
+              <li key={person.key} role="listitem">
                 <PersonListItem
                   person={person}
                   selected={person.key === selectedKey}
                   onClick={() => onSelect(person.key)}
+                  buttonRef={(el) => registerItemRef(person.key, el)}
                 />
               </li>
             ))}

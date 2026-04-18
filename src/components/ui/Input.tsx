@@ -1,12 +1,13 @@
-import type { InputHTMLAttributes, ReactNode } from 'react';
+import type { InputHTMLAttributes, ReactNode, Ref } from 'react';
 import { cn } from '../../utils/cn';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   leftIcon?: ReactNode;
   rightSlot?: ReactNode;
+  inputRef?: Ref<HTMLInputElement> | undefined;
 }
 
-export function Input({ className, leftIcon, rightSlot, ...rest }: InputProps) {
+export function Input({ className, leftIcon, rightSlot, inputRef, ...rest }: InputProps) {
   return (
     <div
       className={cn(
@@ -22,6 +23,7 @@ export function Input({ className, leftIcon, rightSlot, ...rest }: InputProps) {
         </span>
       ) : null}
       <input
+        ref={inputRef}
         className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
         {...rest}
       />

@@ -25,7 +25,7 @@ const SUMMARY_SKELETON_CARDS = 4;
 
 function DossierSkeleton() {
   return (
-    <main className="flex-1 overflow-y-auto" aria-busy="true">
+    <main className="scrollbar-slim flex-1 overflow-y-auto" aria-busy="true">
       <div className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
         <header className="flex items-center gap-3">
           <Skeleton className="h-11 w-11 rounded-full" />
@@ -94,7 +94,7 @@ export function Dossier({
     if (hasSelection && hasActiveFilters) {
       const label = selectedFallbackName?.trim() || 'this person';
       return (
-        <main className="flex-1 overflow-y-auto">
+        <main className="scrollbar-slim flex-1 overflow-y-auto">
           <EmptyState
             icon={FilterX}
             title={`No matching records for ${label} under current filters`}
@@ -111,7 +111,7 @@ export function Dossier({
       );
     }
     return (
-      <main className="flex-1 overflow-y-auto">
+      <main className="scrollbar-slim flex-1 overflow-y-auto">
         <EmptyState
           icon={FileSearch}
           title="Select a suspect on the left to open their case file"
@@ -124,7 +124,7 @@ export function Dossier({
   const recordCount = person.records.length;
 
   return (
-    <main className="flex-1 overflow-y-auto">
+    <main className="scrollbar-slim flex-1 overflow-y-auto">
       <div className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
         <header className="flex items-center gap-3">
           <span

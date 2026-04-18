@@ -23,4 +23,29 @@
     outline: 2px solid theme('colors.indigo.500');
     outline-offset: 2px;
   }
+
+  ::selection {
+    background-color: theme('colors.indigo.100');
+    color: theme('colors.indigo.900');
+  }
+}
+
+@layer utilities {
+  .scrollbar-slim::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-slim::-webkit-scrollbar-thumb {
+    background-color: theme('colors.slate.200');
+    border-radius: 9999px;
+  }
+
+  .scrollbar-slim::-webkit-scrollbar-thumb:hover {
+    background-color: theme('colors.slate.300');
+  }
+
+  .scrollbar-slim::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
 }

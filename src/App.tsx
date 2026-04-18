@@ -1,8 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { TopBar } from './components/TopBar';
-import { PeoplePane } from './components/PeoplePane';
 import { Dossier } from './components/Dossier';
+import { PartialErrorBanner } from './components/PartialErrorBanner';
+import { PeoplePane } from './components/PeoplePane';
+import { TopBar } from './components/TopBar';
+import { Button } from './components/ui/Button';
+import { ErrorState } from './components/ui/ErrorState';
+import { buildPeopleIndex } from './data/buildPeopleIndex';
+import { applyFilters, useFilters } from './hooks/useFilters';
 import { useInvestigation } from './hooks/useInvestigation';
 
 const HASH_PERSON_KEY = 'person';
@@ -31,37 +36,110 @@ function writeHashPersonKey(key: string | null): void {
 }
 
 export default function App() {
-  const { status, peopleByKey, peopleSorted } = useInvestigation();
+  const { status, records, peopleByKey, peopleSorted, sourceStatuses, error, refetchAll } =
+    useInvestigation();
+  const filters = useFilters();
   const [selectedPersonKey, setSelectedPersonKey] = useState<string | null>(() =>
     readHashPersonKey(),
   );
+  const [refreshing, setRefreshing] = useState<boolean>(false);
 
   useEffect(() => {
     writeHashPersonKey(selectedPersonKey);
   }, [selectedPersonKey]);
 
-  const selectedPerson = selectedPersonKey ? peopleByKey.get(selectedPersonKey) : undefined;
+  const filteredRecords = useMemo(
+    () =>
+      applyFilters(records, {
+        query: filters.deferredQuery,
+        sourceTypes: filters.sourceTypes,
+        onlyPodo: filters.onlyPodo,
+      }),
+    [records, filters.deferredQuery, filters.sourceTypes, filters.onlyPodo],
+  );
+
+  const filteredIndex = useMemo(() => buildPeopleIndex(filteredRecords), [filteredRecords]);
+
+  const selectedPerson = selectedPersonKey
+    ? filteredIndex.peopleByKey.get(selectedPersonKey)
+    : undefined;
+
+  const selectedFallback = selectedPersonKey ? peopleByKey.get(selectedPersonKey) : undefined;
 
   const handleSelectPerson = useCallback((key: string) => {
     setSelectedPersonKey(key);
   }, []);
 
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetchAll();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchAll]);
+
+  const isHardError = status === 'error';
+
   return (
     <div className="flex h-screen flex-col bg-slate-50 text-slate-900">
-      <TopBar />
-      <div className="flex flex-1 overflow-hidden">
-        <PeoplePane
-          people={peopleSorted}
-          selectedKey={selectedPersonKey}
-          onSelect={handleSelectPerson}
-          status={status}
+      <TopBar
+        query={filters.query}
+        onQueryChange={filters.setQuery}
+        onlyPodo={filters.onlyPodo}
+        onOnlyPodoChange={filters.setOnlyPodo}
+        onRefresh={handleRefresh}
+        refreshing={refreshing}
+        refreshDisabled={status === 'loading'}
+      />
+      {status === 'partial' ? (
+        <PartialErrorBanner
+          sourceStatuses={sourceStatuses}
+          onRetry={handleRefresh}
+          retrying={refreshing}
         />
-        <Dossier
-          person={selectedPerson}
-          peopleByKey={peopleByKey}
-          onSelectPerson={handleSelectPerson}
-        />
-      </div>
+      ) : null}
+      {isHardError ? (
+        <main className="flex flex-1 items-center justify-center overflow-hidden">
+          <ErrorState
+            title="We couldn't load the case files"
+            description="All five sources failed to respond. Check your connection or try refreshing."
+            action={
+              <Button variant="secondary" size="sm" onClick={handleRefresh} disabled={refreshing}>
+                Retry
+              </Button>
+            }
+            {...(error?.message ? { details: error.message } : {})}
+          />
+        </main>
+      ) : (
+        <div className="flex flex-1 overflow-hidden">
+          <PeoplePane
+            people={filteredIndex.peopleSorted}
+            totalPeople={peopleSorted.length}
+            selectedKey={selectedPersonKey}
+            onSelect={handleSelectPerson}
+            status={status}
+            sourceTypes={filters.sourceTypes}
+            onToggleSource={filters.toggleSource}
+            onSelectAllSources={filters.setAllSources}
+            hasActiveFilters={filters.hasActiveFilters}
+            onClearFilters={filters.clearFilters}
+          />
+          <Dossier
+            person={selectedPerson}
+            peopleByKey={filteredIndex.peopleByKey}
+            onSelectPerson={handleSelectPerson}
+            loading={status === 'loading'}
+            hasSelection={selectedPersonKey !== null}
+            {...(selectedFallback?.displayName
+              ? { selectedFallbackName: selectedFallback.displayName }
+              : {})}
+            hasActiveFilters={filters.hasActiveFilters}
+            onClearFilters={filters.clearFilters}
+          />
+        </div>
+      )}
     </div>
   );
 }

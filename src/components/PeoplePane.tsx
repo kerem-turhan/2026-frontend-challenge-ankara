@@ -1,39 +1,67 @@
-import { Users } from 'lucide-react';
+import { FilterX, Users } from 'lucide-react';
 
-import type { InvestigationStatus, Person } from '../data/types';
+import type { InvestigationStatus, Person, SourceType } from '../data/types';
+import { Button } from './ui/Button';
 import { EmptyState } from './ui/EmptyState';
 import { Skeleton } from './ui/Skeleton';
 import { PersonListItem } from './PersonListItem';
+import { SourceFilters } from './SourceFilters';
 
 export interface PeoplePaneProps {
   people: readonly Person[];
+  totalPeople: number;
   selectedKey: string | null;
   onSelect: (key: string) => void;
   status: InvestigationStatus;
+  sourceTypes: ReadonlySet<SourceType>;
+  onToggleSource: (source: SourceType) => void;
+  onSelectAllSources: () => void;
+  hasActiveFilters: boolean;
+  onClearFilters: () => void;
 }
 
-const SKELETON_ROWS = 6;
+const SKELETON_ROWS = 8;
 
-export function PeoplePane({ people, selectedKey, onSelect, status }: PeoplePaneProps) {
+export function PeoplePane({
+  people,
+  totalPeople,
+  selectedKey,
+  onSelect,
+  status,
+  sourceTypes,
+  onToggleSource,
+  onSelectAllSources,
+  hasActiveFilters,
+  onClearFilters,
+}: PeoplePaneProps) {
   const count = people.length;
-  const isInitialLoading = status === 'loading' && count === 0;
+  const isInitialLoading = status === 'loading' && totalPeople === 0;
   const isEmptyReady = count === 0 && status !== 'loading';
 
   return (
     <aside className="flex h-full w-[360px] shrink-0 flex-col border-r border-slate-200 bg-white">
-      <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-        <div>
-          <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
-            Suspects
-          </p>
-          <p className="text-sm font-semibold text-slate-900">
-            {isInitialLoading
-              ? 'Loading people…'
-              : count === 0
-                ? 'No people yet'
-                : `${count} ${count === 1 ? 'person' : 'people'}`}
-          </p>
+      <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4">
+        <div className="flex items-baseline justify-between gap-2">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+              Suspects
+            </p>
+            <p className="text-sm font-semibold text-slate-900">
+              {isInitialLoading
+                ? 'Loading people…'
+                : totalPeople === 0
+                  ? 'No people yet'
+                  : hasActiveFilters
+                    ? `${count} of ${totalPeople} ${totalPeople === 1 ? 'person' : 'people'}`
+                    : `${count} ${count === 1 ? 'person' : 'people'}`}
+            </p>
+          </div>
         </div>
+        <SourceFilters
+          sourceTypes={sourceTypes}
+          onToggle={onToggleSource}
+          onSelectAll={onSelectAllSources}
+        />
       </div>
       <div className="flex-1 overflow-y-auto">
         {isInitialLoading ? (
@@ -50,11 +78,24 @@ export function PeoplePane({ people, selectedKey, onSelect, status }: PeoplePane
             ))}
           </ul>
         ) : isEmptyReady ? (
-          <EmptyState
-            icon={Users}
-            title="No suspects to show"
-            description="Once the case data loads, people linked to Podo are listed here — the most suspicious at the top."
-          />
+          hasActiveFilters ? (
+            <EmptyState
+              icon={FilterX}
+              title="No suspects match your filters"
+              description="Try removing a source filter, clearing the Podo toggle or shortening your search."
+              action={
+                <Button variant="secondary" size="sm" onClick={onClearFilters}>
+                  Clear filters
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={Users}
+              title="No suspects to show"
+              description="Once the case data loads, people linked to Podo are listed here — the most suspicious at the top."
+            />
+          )
         ) : (
           <ul>
             {people.map((person) => (
